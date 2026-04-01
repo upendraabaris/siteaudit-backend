@@ -11,7 +11,7 @@ async function analyzeBestPractices(url) {
     console.log(`✅ Analyzing best practices for: ${url}`);
 
     const response = await axios.get(url, {
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
@@ -40,10 +40,10 @@ async function analyzeBestPractices(url) {
 
     Object.keys(securityHeaders).forEach(header => {
       if (!headers[header]) {
-        issues.push({ 
-          type: 'warning', 
-          message: securityHeaders[header], 
-          impact: 'medium' 
+        issues.push({
+          type: 'warning',
+          message: securityHeaders[header],
+          impact: 'medium'
         });
         score -= 5;
       }
@@ -74,10 +74,10 @@ async function analyzeBestPractices(url) {
     }).length;
 
     if (unsafeExternalLinks > 0) {
-      issues.push({ 
-        type: 'warning', 
-        message: `${unsafeExternalLinks} external links missing rel="noopener noreferrer"`, 
-        impact: 'medium' 
+      issues.push({
+        type: 'warning',
+        message: `${unsafeExternalLinks} external links missing rel="noopener noreferrer"`,
+        impact: 'medium'
       });
       score -= Math.min(unsafeExternalLinks * 2, 10);
     }
@@ -86,10 +86,10 @@ async function analyzeBestPractices(url) {
     if (isHTTPS) {
       const httpResources = $('img[src^="http:"], script[src^="http:"], link[href^="http:"]').length;
       if (httpResources > 0) {
-        issues.push({ 
-          type: 'error', 
-          message: `${httpResources} HTTP resources on HTTPS page (mixed content)`, 
-          impact: 'high' 
+        issues.push({
+          type: 'error',
+          message: `${httpResources} HTTP resources on HTTPS page (mixed content)`,
+          impact: 'high'
         });
         score -= 15;
       }
@@ -98,10 +98,10 @@ async function analyzeBestPractices(url) {
     // Check for deprecated HTML elements
     const deprecatedElements = $('center, font, marquee, blink').length;
     if (deprecatedElements > 0) {
-      issues.push({ 
-        type: 'warning', 
-        message: `${deprecatedElements} deprecated HTML elements found`, 
-        impact: 'low' 
+      issues.push({
+        type: 'warning',
+        message: `${deprecatedElements} deprecated HTML elements found`,
+        impact: 'low'
       });
       score -= deprecatedElements * 2;
     }
@@ -109,21 +109,21 @@ async function analyzeBestPractices(url) {
     // Check for inline styles and scripts
     const inlineStyles = $('[style]').length;
     const inlineScripts = $('script:not([src])').length;
-    
+
     if (inlineStyles > 5) {
-      issues.push({ 
-        type: 'info', 
-        message: `Many inline styles found (${inlineStyles}) - consider using external CSS`, 
-        impact: 'low' 
+      issues.push({
+        type: 'info',
+        message: `Many inline styles found (${inlineStyles}) - consider using external CSS`,
+        impact: 'low'
       });
       score -= 3;
     }
 
     if (inlineScripts > 2) {
-      issues.push({ 
-        type: 'info', 
-        message: `Multiple inline scripts found (${inlineScripts}) - consider using external JS`, 
-        impact: 'low' 
+      issues.push({
+        type: 'info',
+        message: `Multiple inline scripts found (${inlineScripts}) - consider using external JS`,
+        impact: 'low'
       });
       score -= 3;
     }

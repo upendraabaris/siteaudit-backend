@@ -2,6 +2,7 @@ const { analyzeSEO } = require('./seoService');
 const { analyzePerformance } = require('./performanceService');
 const { analyzeAccessibility } = require('./accessibilityService');
 const { analyzeBestPractices } = require('./bestPracticesService');
+const { analyzeBrokenLinks } = require('./brokenLinksService');
 
 /**
  * Run complete website audit
@@ -13,11 +14,18 @@ async function runFullAudit(url) {
     console.log(`🚀 Starting full audit for: ${url}`);
 
     // Run all audits in parallel for better performance
-    const [seoResults, performanceResults, accessibilityResults, bestPracticesResults] = await Promise.all([
-      analyzeSEO(url).catch(err => ({ error: err.message, score: 0 })),
-      analyzePerformance(url).catch(err => ({ error: err.message, score: 0 })),
-      analyzeAccessibility(url).catch(err => ({ error: err.message, score: 0 })),
-      analyzeBestPractices(url).catch(err => ({ error: err.message, score: 0 }))
+    const [
+      seoResults,
+      performanceResults,
+      accessibilityResults,
+      bestPracticesResults,
+      brokenLinksResults
+    ] = await Promise.all([
+      analyzeSEO(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], details: {} })),
+      analyzePerformance(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], metrics: {} })),
+      analyzeAccessibility(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], details: {} })),
+      analyzeBestPractices(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], details: {} })),
+      analyzeBrokenLinks(url).catch(err => ({ error: err.message, score: 0, brokenItems: [], recommendations: [] }))
     ]);
 
     // Calculate overall score
@@ -25,9 +33,10 @@ async function runFullAudit(url) {
       seoResults.score || 0,
       performanceResults.score || 0,
       accessibilityResults.score || 0,
-      bestPracticesResults.score || 0
+      bestPracticesResults.score || 0,
+      brokenLinksResults.score || 0
     ];
-    
+
     const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 
     const auditResults = {
@@ -40,11 +49,13 @@ async function runFullAudit(url) {
       performance: performanceResults,
       accessibility: accessibilityResults,
       bestPractices: bestPracticesResults,
+      brokenLinks: brokenLinksResults,
       summary: {
-        totalIssues: (seoResults.issues?.length || 0) + 
-                   (performanceResults.issues?.length || 0) + 
-                   (accessibilityResults.issues?.length || 0) + 
-                   (bestPracticesResults.issues?.length || 0),
+        totalIssues: (seoResults.issues?.length || 0) +
+          (performanceResults.issues?.length || 0) +
+          (accessibilityResults.issues?.length || 0) +
+          (bestPracticesResults.issues?.length || 0) +
+          (brokenLinksResults.brokenItems?.length || 0),
         criticalIssues: 0, // Will be calculated based on issue severity
         recommendations: []
       }

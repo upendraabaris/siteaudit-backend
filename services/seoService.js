@@ -12,7 +12,7 @@ async function analyzeSEO(url) {
 
     // Fetch the webpage
     const response = await axios.get(url, {
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
@@ -70,9 +70,43 @@ async function analyzeSEO(url) {
     // Check for Open Graph tags
     const ogTitle = $('meta[property="og:title"]').attr('content');
     const ogDescription = $('meta[property="og:description"]').attr('content');
+    const ogImage = $('meta[property="og:image"]').attr('content');
+    const ogSiteName = $('meta[property="og:site_name"]').attr('content');
+    const ogType = $('meta[property="og:type"]').attr('content');
+
+    // Check for Twitter tags
+    const twitterCard = $('meta[name="twitter:card"]').attr('content');
+    const twitterTitle = $('meta[name="twitter:title"]').attr('content') || ogTitle;
+    const twitterDescription = $('meta[name="twitter:description"]').attr('content') || ogDescription;
+    const twitterImage = $('meta[name="twitter:image"]').attr('content') || ogImage;
+    const twitterSite = $('meta[name="twitter:site"]').attr('content');
+
     if (!ogTitle || !ogDescription) {
       issues.push({ type: 'info', message: 'Missing Open Graph tags for social sharing', impact: 'low' });
       score -= 3;
+    }
+
+    // Check for JSON-LD Schema
+    const schemaTypes = [];
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const json = JSON.parse($(el).html());
+        const getTypes = (obj) => {
+          if (!obj) return;
+          if (obj['@type']) schemaTypes.push(obj['@type']);
+          if (obj['@graph'] && Array.isArray(obj['@graph'])) {
+            obj['@graph'].forEach(item => getTypes(item));
+          }
+        };
+        getTypes(json);
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    });
+
+    if (schemaTypes.length === 0) {
+      issues.push({ type: 'info', message: 'No structured data (Schema.org) detected', impact: 'low' });
+      score -= 2;
     }
 
     // Generate recommendations
@@ -95,7 +129,20 @@ async function analyzeSEO(url) {
         h1Count: h1Tags.length,
         imagesWithoutAlt: imagesWithoutAlt,
         hasCanonical: !!canonical,
-        hasOpenGraph: !!(ogTitle && ogDescription)
+        hasOpenGraph: !!(ogTitle && ogDescription),
+        social: {
+          ogTitle,
+          ogDescription,
+          ogImage,
+          ogSiteName,
+          ogType,
+          twitterCard,
+          twitterTitle,
+          twitterDescription,
+          twitterImage,
+          twitterSite
+        },
+        schemaTypes: [...new Set(schemaTypes)] // Unique types
       }
     };
 

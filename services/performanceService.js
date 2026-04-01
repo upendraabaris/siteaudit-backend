@@ -10,10 +10,10 @@ async function analyzePerformance(url) {
     console.log(`⚡ Analyzing performance for: ${url}`);
 
     const startTime = Date.now();
-    
+
     // Basic performance metrics
     const response = await axios.get(url, {
-      timeout: 15000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
@@ -21,7 +21,7 @@ async function analyzePerformance(url) {
 
     const loadTime = Date.now() - startTime;
     const contentSize = Buffer.byteLength(response.data, 'utf8');
-    
+
     const issues = [];
     const recommendations = [];
     let score = 100;
@@ -44,7 +44,7 @@ async function analyzePerformance(url) {
 
     // Check response headers for optimization
     const headers = response.headers;
-    
+
     // Check for compression
     if (!headers['content-encoding']) {
       issues.push({ type: 'warning', message: 'No compression detected', impact: 'medium' });
@@ -61,7 +61,7 @@ async function analyzePerformance(url) {
     const server = headers['server'] || '';
     const cdnHeaders = ['cloudflare', 'cloudfront', 'fastly', 'maxcdn'];
     const hasCDN = cdnHeaders.some(cdn => server.toLowerCase().includes(cdn));
-    
+
     if (!hasCDN) {
       issues.push({ type: 'info', message: 'Consider using a CDN for better performance', impact: 'low' });
       score -= 5;
@@ -73,7 +73,7 @@ async function analyzePerformance(url) {
       recommendations.push('Enable compression (gzip/brotli)');
       recommendations.push('Minimize HTTP requests');
     }
-    
+
     if (sizeInKB > 500) {
       recommendations.push('Reduce page size by optimizing assets');
     }

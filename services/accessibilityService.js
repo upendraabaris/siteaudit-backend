@@ -11,7 +11,7 @@ async function analyzeAccessibility(url) {
     console.log(`♿ Analyzing accessibility for: ${url}`);
 
     const response = await axios.get(url, {
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
@@ -26,10 +26,10 @@ async function analyzeAccessibility(url) {
     const imagesWithoutAlt = $('img:not([alt])').length;
     const totalImages = $('img').length;
     if (imagesWithoutAlt > 0) {
-      issues.push({ 
-        type: 'error', 
-        message: `${imagesWithoutAlt} of ${totalImages} images missing alt text`, 
-        impact: 'high' 
+      issues.push({
+        type: 'error',
+        message: `${imagesWithoutAlt} of ${totalImages} images missing alt text`,
+        impact: 'high'
       });
       score -= Math.min(imagesWithoutAlt * 3, 20);
     }
@@ -37,7 +37,7 @@ async function analyzeAccessibility(url) {
     // Check for proper heading structure
     const headings = $('h1, h2, h3, h4, h5, h6');
     let headingIssues = 0;
-    
+
     // Check if H1 exists
     if ($('h1').length === 0) {
       issues.push({ type: 'error', message: 'Missing H1 heading', impact: 'high' });
@@ -68,10 +68,10 @@ async function analyzeAccessibility(url) {
     }).length;
 
     if (inputsWithoutLabels > 0) {
-      issues.push({ 
-        type: 'error', 
-        message: `${inputsWithoutLabels} form inputs missing labels`, 
-        impact: 'high' 
+      issues.push({
+        type: 'error',
+        message: `${inputsWithoutLabels} form inputs missing labels`,
+        impact: 'high'
       });
       score -= inputsWithoutLabels * 5;
     }
@@ -79,10 +79,10 @@ async function analyzeAccessibility(url) {
     // Check for color contrast (basic check for inline styles)
     const elementsWithInlineColors = $('[style*="color"]').length;
     if (elementsWithInlineColors > 0) {
-      issues.push({ 
-        type: 'warning', 
-        message: 'Elements with inline colors detected - check contrast ratios', 
-        impact: 'medium' 
+      issues.push({
+        type: 'warning',
+        message: 'Elements with inline colors detected - check contrast ratios',
+        impact: 'medium'
       });
       score -= 5;
     }
@@ -90,12 +90,12 @@ async function analyzeAccessibility(url) {
     // Check for keyboard navigation support
     const focusableElements = $('a, button, input, select, textarea, [tabindex]').length;
     const elementsWithTabindex = $('[tabindex]').length;
-    
+
     if (focusableElements > 0 && elementsWithTabindex === 0) {
-      issues.push({ 
-        type: 'info', 
-        message: 'Consider adding proper tab navigation order', 
-        impact: 'low' 
+      issues.push({
+        type: 'info',
+        message: 'Consider adding proper tab navigation order',
+        impact: 'low'
       });
       score -= 3;
     }
@@ -103,10 +103,10 @@ async function analyzeAccessibility(url) {
     // Check for ARIA landmarks
     const landmarks = $('[role="main"], [role="navigation"], [role="banner"], [role="contentinfo"], main, nav, header, footer').length;
     if (landmarks === 0) {
-      issues.push({ 
-        type: 'warning', 
-        message: 'No ARIA landmarks or semantic HTML5 elements found', 
-        impact: 'medium' 
+      issues.push({
+        type: 'warning',
+        message: 'No ARIA landmarks or semantic HTML5 elements found',
+        impact: 'medium'
       });
       score -= 8;
     }
