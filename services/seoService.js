@@ -116,6 +116,85 @@ async function analyzeSEO(url) {
       recommendations.push('Add alt text to all images');
     }
 
+    // --- Keyword Density Analysis ---
+    // Remove non-visible elements
+    $('script, style, noscript, iframe, svg').remove();
+    const bodyText = $('body').text() || '';
+    
+    // Tokenize: keep all words for phrase building
+    const stopWords = new Set([
+      'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one',
+      'our', 'out', 'has', 'have', 'from', 'been', 'will', 'with', 'they', 'this', 'that', 'what',
+      'when', 'make', 'like', 'just', 'over', 'such', 'take', 'than', 'them', 'very', 'some',
+      'your', 'into', 'most', 'also', 'more', 'other', 'which', 'their', 'about', 'would',
+      'these', 'there', 'could', 'does', 'each', 'here', 'those', 'where', 'being', 'using',
+      'only', 'then', 'first', 'come', 'made', 'find', 'back', 'many', 'way', 'may', 'how',
+      'get', 'see', 'use', 'new', 'now', 'any', 'own', 'its', 'say', 'said', 'should'
+    ]);
+
+    // All cleaned words (including stopwords, for phrase building)
+    const rawWords = bodyText
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 2);
+
+    // Single words (filtered, no stopwords)
+    const singleWords = rawWords.filter(w => w.length >= 3 && !stopWords.has(w));
+    const totalWords = singleWords.length;
+
+    // Count single word frequency
+    const singleFreq = {};
+    for (const word of singleWords) {
+      singleFreq[word] = (singleFreq[word] || 0) + 1;
+    }
+
+    const topSingleKeywords = Object.entries(singleFreq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([word, count]) => ({
+        word,
+        count,
+        density: totalWords > 0 ? parseFloat(((count / totalWords) * 100).toFixed(2)) : 0
+      }));
+
+    // Build n-gram phrases from raw words (with quality filtering)
+    const buildNgrams = (words, n) => {
+      const freq = {};
+      for (let i = 0; i <= words.length - n; i++) {
+        const phraseWords = words.slice(i, i + n);
+        const phrase = phraseWords.join(' ');
+
+        // Quality filters for accurate phrases:
+        // 1. First word must NOT be a stopword (no "the seo", "and website")
+        if (stopWords.has(phraseWords[0]) || phraseWords[0].length < 3) continue;
+        // 2. Last word must NOT be a stopword (no "seo the", "audit and")
+        if (stopWords.has(phraseWords[n - 1]) || phraseWords[n - 1].length < 3) continue;
+        // 3. At least half of the words must be meaningful
+        const meaningfulCount = phraseWords.filter(w => w.length >= 3 && !stopWords.has(w)).length;
+        if (meaningfulCount < Math.ceil(n / 2)) continue;
+        // 4. Skip if phrase contains numbers
+        if (/\d/.test(phrase)) continue;
+
+        freq[phrase] = (freq[phrase] || 0) + 1;
+      }
+      // Only return phrases that appear 2+ times
+      return Object.entries(freq)
+        .filter(([, count]) => count >= 2)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([phrase, count]) => ({
+          word: phrase,
+          count,
+          density: totalWords > 0 ? parseFloat(((count / totalWords) * 100).toFixed(2)) : 0
+        }));
+    };
+
+    const topBigrams = buildNgrams(rawWords, 2);
+    const topTrigrams = buildNgrams(rawWords, 3);
+
+    const uniqueWords = Object.keys(singleFreq).length;
+
     const seoResults = {
       score: Math.max(score, 0),
       grade: getGrade(score),
@@ -142,9 +221,17 @@ async function analyzeSEO(url) {
           twitterImage,
           twitterSite
         },
-        schemaTypes: [...new Set(schemaTypes)] // Unique types
+        schemaTypes: [...new Set(schemaTypes)],
+        keywords: {
+          totalWords,
+          uniqueWords,
+          topKeywords: topSingleKeywords,
+          topBigrams,
+          topTrigrams
+        }
       }
     };
+
 
     console.log(`✅ SEO analysis completed - Score: ${seoResults.score}`);
     return seoResults;

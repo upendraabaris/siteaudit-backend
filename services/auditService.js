@@ -3,6 +3,7 @@ const { analyzePerformance } = require('./performanceService');
 const { analyzeAccessibility } = require('./accessibilityService');
 const { analyzeBestPractices } = require('./bestPracticesService');
 const { analyzeBrokenLinks } = require('./brokenLinksService');
+const { analyzeCrawlability } = require('./crawlabilityService');
 
 /**
  * Run complete website audit
@@ -19,13 +20,15 @@ async function runFullAudit(url) {
       performanceResults,
       accessibilityResults,
       bestPracticesResults,
-      brokenLinksResults
+      brokenLinksResults,
+      crawlabilityResults
     ] = await Promise.all([
       analyzeSEO(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], details: {} })),
       analyzePerformance(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], metrics: {} })),
       analyzeAccessibility(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], details: {} })),
       analyzeBestPractices(url).catch(err => ({ error: err.message, score: 0, issues: [], recommendations: [], details: {} })),
-      analyzeBrokenLinks(url).catch(err => ({ error: err.message, score: 0, brokenItems: [], recommendations: [] }))
+      analyzeBrokenLinks(url).catch(err => ({ error: err.message, score: 0, brokenItems: [], recommendations: [] })),
+      analyzeCrawlability(url).catch(err => ({ error: err.message, score: 0, robotsTxt: {}, sitemap: {}, issues: [], recommendations: [] }))
     ]);
 
     // Calculate overall score
@@ -34,7 +37,8 @@ async function runFullAudit(url) {
       performanceResults.score || 0,
       accessibilityResults.score || 0,
       bestPracticesResults.score || 0,
-      brokenLinksResults.score || 0
+      brokenLinksResults.score || 0,
+      crawlabilityResults.score || 0
     ];
 
     const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
@@ -50,6 +54,7 @@ async function runFullAudit(url) {
       accessibility: accessibilityResults,
       bestPractices: bestPracticesResults,
       brokenLinks: brokenLinksResults,
+      crawlability: crawlabilityResults,
       summary: {
         totalIssues: (seoResults.issues?.length || 0) +
           (performanceResults.issues?.length || 0) +
